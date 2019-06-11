@@ -42,7 +42,7 @@ objective = function(args) {
 genLearner.tpe = function(args){
   model = args$Classifier$model
   args$Classifier$model = NULL
-  ps.learner = args$Classifier    
+  ps.learner = args$Classifier  # list in R, which can be evaluated by eval
   filter = args$FeatureFilter$filter
   lrn = sprintf("%s %%>>%% %s %%>>%% makeLearner('classif.%s', par.vals = ps.learner)", 
                 args$Preprocess, filter, model)
