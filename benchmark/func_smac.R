@@ -73,40 +73,57 @@ genLearner.tpe = function(args){
 }
 
 
-gen_mlrCPOPipe_from_smac_cfg = function(cfg, subtask) {
+gen_mlrCPOPipe_from_smac_cfg = function(cfg, subtask = mlr::iris.task) {
     #cfg = cfg.sample_configuration()
     # convert ConfigSpace.configuration_space.ConfigurationSpace to ConfigSpace.configuration_space.Configuration
     # For deactivated parameters, the configuration stores None-values. so we remove them.
     #cfg = {k : cfg[k] for k in cfg if cfg[k]}
-    cfg = list(Model = "xgboost", Preprocess = "NA", FeatureFilter = "NA", lrn_xgboost_depth = 3)
+    #cfg = list(Model = "xgboost", Preprocess = "cpoScale(center = FALSE)", FeatureFilter = "cpoPca(center = FALSE, rank = rank_val)", lrn_xgboost_max_depth = 3, lrn_xgboost_eta = 0.03, fe_pca_rank = 0.5) # for testing and debug
+
     model = cfg$Model
     preprocess = cfg$Preprocess
     pfilter = cfg$FeatureFilter
-    #+name4 = grep(pattern = "fe", x = c("fe_cps", "agsg", "cag"), value = T)
-    name4featureEng_perc = grep(pattern = "perc", x = names(cfg), value = T)
-    name4lrn_hyp = grep(pattern = "lrn", x = names(cfg), value = T)
-    ps.learner = cfg[name4lrn_hyp]  # evaluted later by R function eval
-    ns4hyper = names(ps.learner) 
-    ns4hyper = gsub("(lrn_[a-z]+_)*", x = ns4hyper, replacement="")
-    names(ps.learner) = ns4hyper
+
+    ##
+    extract_hyper_prefix = function(prefix = "lrn", cfg) {
+      names4lrn_hyp = grep(pattern = prefix, x = names(cfg), value = T)
+      ps.learner = cfg[names4lrn_hyp]  # evaluted later by R function eval
+      ns4hyper = gsub(paste0("(", prefix, "_[a-z]+_)*"), x = names4lrn_hyp, replacement="")
+      names(ps.learner) = ns4hyper
+      ps.learner
+    }
+    ##
+    ps.learner  =  extract_hyper_prefix("lrn", cfg)  # hyper-parameters for learner must exist
+
+    names4Fe = grep(pattern = "fe", x = names(cfg), value = T)
+
+    p = getTaskNFeats(subTask)
+
+    if(length(names4Fe) > 0) {
+      ps.Fe = extract_hyper_prefix("fe", cfg)
+      if(grepl(pattern = "perc", x = names(ps.Fe)))  {
+        name4featureEng_perc = grep(pattern = "perc", x = names(ps.Fe), value = T)
+        perc_val = ps.Fe[[name4featureEng_perc]] 
+      }
+      if(grepl(pattern = "rank", x = names(ps.Fe))) {
+        name4featureEng_rank = grep(pattern = "rank", x = names(ps.Fe), value = T)
+        rank_val = ps.Fe[[name4featureEng_rank]] * p
+      }
+    }
+
     lrn = sprintf("%s %%>>%% %s %%>>%% makeLearner('classif.%s', par.vals = ps.learner)",
                 preprocess, pfilter, model)
     lrn = gsub(pattern = "NA %>>%", x = lrn, replacement = "", fixed = TRUE)
-    #names(cfg)
 
-    if(length(name4featureEng_perc) > 0)  {
-      perc_val = cfg[[name4featureEng_perc]]
-      lrn = gsub(pattern = "perc", x = lrn, replacement = "perc = perc_val", fixed = TRUE)
-    }
-
-    p = getTaskNFeats(subTask)
-    lrn = gsub(pattern = "rank", x = lrn, replacement = "rank = as.integer(max(1, round(p*pca_rank)))", fixed = TRUE)
+ 
+    # set mtry after reducing the number of dimensions
     if (model == "ranger") {
         p1 = p
-        if (!is.null(args$FeatureFilter$perc)) {p1 = max(1, round(p*args$FeatureFilter$perc))}
-        if (!is.null(args$FeatureFilter$rank)) {p1 = max(1, round(p*args$FeatureFilter$rank))}
-        ps.learner$mtry = max(1, as.integer(p1*args$FeatureFilter$mtry))
+        if (!is.null(args$FeatureFilter$perc)) {p1 = max(1, round(p*perc_val))}
+        if (!is.null(args$FeatureFilter$rank)) {p1 = max(1, round(p*rank_val))}
+        ps.learner$mtry = max(1, as.integer(p1*ps.learner$mtry))
     }
-    lrn = eval(parse(text = lrn))
-    return(lrn)
+    lrn = paste0("library(mlrCPO);library(magrittr);", lrn)
+    obj_lrn = eval(parse(text = lrn))
+    return(obj_lrn)
 }
