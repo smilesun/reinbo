@@ -15,17 +15,19 @@ opt.tpe = function(task, budget, measure, train_set = NULL) {
   return(mmodel)
 }
 
-run = function(cs) {
-scenario = Scenario({"run_obj": "quality",   # we optimize quality (alternatively runtime)
-                     "runcount-limit": 1000,  # maximum function evaluations
+run = function(cs, budget = 1000) {
+  hh = reticulate::import("python_smac_space")
+  budget = 1000
+  scenario = Scenario({"run_obj": "quality",   # we optimize quality (alternatively runtime)
+                     "runcount-limit": budget,  # maximum function evaluations
                      "cs": cs,               # configuration space
                      "deterministic": "true"
                      })
-print("Optimizing! Depending on your machine, this might take a few minutes.")
-smac = SMAC(scenario=scenario, rng=np.random.RandomState(42), tae_runner=svm_from_cfg)
-incumbent = smac.optimize()
-inc_value = svm_from_cfg(incumbent)
-print("Optimized Value: %.2f" % (inc_value))
+  print("Optimizing! Depending on your machine, this might take a few minutes.")
+  smac = SMAC(scenario=scenario, rng=np.random.RandomState(42), tae_runner=objective)
+  incumbent = smac.optimize()
+  inc_value = svm_from_cfg(incumbent)
+  print("Optimized Value: %.2f" % (inc_value))
 }
 
 # Predict function: evaluate best model on test dataset
@@ -39,24 +41,28 @@ lock_eval.tpe = function(task, measure, train_set, test_set, best_model){
 
 
 # Objective to optimize:
-objective = function(args) {
+objective = function(cfg) {
+  # some variables are defined in the scope where this function is called
   model_index <<- model_index + 1
-  model_list[[model_index]] <<- args
-  lrn = genLearner.tpe(args)
+  model_list[[model_index]] <<- cfg
+  lrn = gen_mlrCPOPipe_from_smac_cfg(cfg)
   perf = resample(lrn, subTask, resampling = inner_loop, measures = measure, show.info = FALSE)$aggr
   perf_list <<- c(perf_list, as.numeric(perf))
   return(perf)
 }
-# one sample of args: args = hp$pyll$stochastic$sample(py$space)
 
-gen_mlrCPOPipe_from_smac_cfg = function(cfg, subtask = mlr::iris.task) {
+test_gen_mlrCPOPipe_from_smac_cfg = function() {
+  subTask = mlr::iris.task
+  cfg = reticulate::import("python_smac_space")
+  cfg = cfg$stub
+  gen_mlrCPOPipe_from_smac_cfg(cfg)
+}
+
+gen_mlrCPOPipe_from_smac_cfg = function(cfg) {
     #cfg = cfg.sample_configuration()
     # convert ConfigSpace.configuration_space.ConfigurationSpace to ConfigSpace.configuration_space.Configuration
     # For deactivated parameters, the configuration stores None-values. so we remove them.
     #cfg = list(Model = "xgboost", Preprocess = "cpoScale(center = FALSE)", FeatureFilter = "cpoPca(center = FALSE, rank = rank_val)", lrn_xgboost_max_depth = 3, lrn_xgboost_eta = 0.03, fe_pca_rank = 0.5) # for testing and debug
-    cfg = reticulate::import("python_smac_space")
-    subTask = mlr::iris.task
-    cfg = cfg$stub
     model = cfg$Model
     preprocess = cfg$Preprocess
     pfilter = cfg$FeatureFilter
@@ -78,7 +84,7 @@ gen_mlrCPOPipe_from_smac_cfg = function(cfg, subtask = mlr::iris.task) {
 
     names4Fe = grep(pattern = "fe", x = names(cfg), value = T)
 
-    p = mlr::getTaskNFeats(subTask)
+    p = mlr::getTaskNFeats(subTask)  # this subTask relies on global variable
 
     if(length(names4Fe) > 0) {
       ps.Fe = extract_hyper_prefix("fe", cfg)
