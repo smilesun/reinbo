@@ -49,46 +49,27 @@ objective = function(args) {
 }
 # one sample of args: args = hp$pyll$stochastic$sample(py$space)
 
-
-# Generate mlr learner for configuration:
-genLearner.tpe = function(args){
-  model = args$Classifier$model
-  args$Classifier$model = NULL
-  ps.learner = args$Classifier    
-  filter = args$FeatureFilter$filter
-  lrn = sprintf("%s %%>>%% %s %%>>%% makeLearner('classif.%s', par.vals = ps.learner)", 
-                args$Preprocess, filter, model)
-  lrn = gsub(pattern = "NA %>>%", x = lrn, replacement = "", fixed = TRUE)
-  lrn = gsub(pattern = "perc", x = lrn, replacement = "perc = args$FeatureFilter$perc", fixed = TRUE)
-  p = getTaskNFeats(subTask)
-  lrn = gsub(pattern = "rank", x = lrn, replacement = "rank = as.integer(max(1, round(p*args$FeatureFilter$rank)))", fixed = TRUE)
-  if (model == "ranger") {
-    p1 = p
-    if (!is.null(args$FeatureFilter$perc)) {p1 = max(1, round(p*args$FeatureFilter$perc))}
-    if (!is.null(args$FeatureFilter$rank)) {p1 = max(1, round(p*args$FeatureFilter$rank))}
-    ps.learner$mtry = max(1, as.integer(p1*args$FeatureFilter$mtry))
-  }
-  lrn = eval(parse(text = lrn))
-  return(lrn)
-}
-
-
 gen_mlrCPOPipe_from_smac_cfg = function(cfg, subtask = mlr::iris.task) {
     #cfg = cfg.sample_configuration()
     # convert ConfigSpace.configuration_space.ConfigurationSpace to ConfigSpace.configuration_space.Configuration
     # For deactivated parameters, the configuration stores None-values. so we remove them.
-    #cfg = {k : cfg[k] for k in cfg if cfg[k]}
     #cfg = list(Model = "xgboost", Preprocess = "cpoScale(center = FALSE)", FeatureFilter = "cpoPca(center = FALSE, rank = rank_val)", lrn_xgboost_max_depth = 3, lrn_xgboost_eta = 0.03, fe_pca_rank = 0.5) # for testing and debug
-
+    cfg = reticulate::import("python_smac_space")
+    subTask = mlr::iris.task
+    cfg = cfg$stub
     model = cfg$Model
     preprocess = cfg$Preprocess
     pfilter = cfg$FeatureFilter
+    perc_val = NULL
+    rank_val = NULL
 
     ##
     extract_hyper_prefix = function(prefix = "lrn", cfg) {
       names4lrn_hyp = grep(pattern = prefix, x = names(cfg), value = T)
       ps.learner = cfg[names4lrn_hyp]  # evaluted later by R function eval
-      ns4hyper = gsub(paste0("(", prefix, "_[a-z]+_)*"), x = names4lrn_hyp, replacement="")
+      pattern = paste0("(", prefix, "_[:alpha:]+_)*")
+      #ns4hyper = gsub(pattern = pattern, x = names4lrn_hyp, replacement="", ignore.case = T)
+      ns4hyper = stringr::str_replace(string = names4lrn_hyp, pattern = pattern, replacement="")
       names(ps.learner) = ns4hyper
       ps.learner
     }
@@ -97,7 +78,7 @@ gen_mlrCPOPipe_from_smac_cfg = function(cfg, subtask = mlr::iris.task) {
 
     names4Fe = grep(pattern = "fe", x = names(cfg), value = T)
 
-    p = getTaskNFeats(subTask)
+    p = mlr::getTaskNFeats(subTask)
 
     if(length(names4Fe) > 0) {
       ps.Fe = extract_hyper_prefix("fe", cfg)
@@ -107,7 +88,7 @@ gen_mlrCPOPipe_from_smac_cfg = function(cfg, subtask = mlr::iris.task) {
       }
       if(grepl(pattern = "rank", x = names(ps.Fe))) {
         name4featureEng_rank = grep(pattern = "rank", x = names(ps.Fe), value = T)
-        rank_val = ps.Fe[[name4featureEng_rank]] * p
+        rank_val = ceiling(ps.Fe[[name4featureEng_rank]] * p)
       }
     }
 
@@ -119,8 +100,8 @@ gen_mlrCPOPipe_from_smac_cfg = function(cfg, subtask = mlr::iris.task) {
     # set mtry after reducing the number of dimensions
     if (model == "ranger") {
         p1 = p
-        if (!is.null(args$FeatureFilter$perc)) {p1 = max(1, round(p*perc_val))}
-        if (!is.null(args$FeatureFilter$rank)) {p1 = max(1, round(p*rank_val))}
+        if (!is.null(perc_val)) {p1 = max(1, round(p*perc_val))}
+        if (!is.null(rank_val)) {p1 = rank_val}
         ps.learner$mtry = max(1, as.integer(p1*ps.learner$mtry))
     }
     lrn = paste0("library(mlrCPO);library(magrittr);", lrn)
