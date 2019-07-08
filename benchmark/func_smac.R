@@ -23,31 +23,21 @@ run = function(cs, budget = 1000) {
                      "deterministic" = "true"
                      ))
 
+  # scenario$abort_on_first_run_crash = F
 
   print("Optimizing! Depending on your machine, this might take a few minutes.")
   np = reticulate::import("numpy")
-  smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(42)), tae_runner = toy_smac_obj)
+  #fd = hh$ExecuteTAFuncDict(toy_smac_obj)
+  #smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(4)), tae_runner = toy_smac_obj)
+  #smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(4)), tae_runner = fd)
+  reticulate::source_python('smac_obj.py')
+  smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(4)), tae_runner = smac_obj_from_cfg)
   smac$get_tae_runner()
   incumbent = smac$optimize()  # problem
   #inc_value = svm_from_cfg(incumbent)
   incumbent
   #print("Optimized Value: %.2f" % (inc_value))
 }
-
-# Objective to optimize:
-toy_smac_obj = function(cfg) {
-  runif(1)
-}
-smac_objective = function(cfg) {
-  # some variables are defined in the scope where this function is called
-  model_index <<- model_index + 1
-  model_list[[model_index]] <<- cfg
-  lrn = gen_mlrCPOPipe_from_smac_cfg(cfg)
-  perf = resample(lrn, subTask, resampling = inner_loop, measures = measure, show.info = FALSE)$aggr
-  perf_list <<- c(perf_list, as.numeric(perf))
-  return(perf)
-}
-
 
 
 test_run = function() {
