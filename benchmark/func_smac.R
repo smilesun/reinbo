@@ -26,7 +26,7 @@ run = function(cs, budget = 1000) {
 
   print("Optimizing! Depending on your machine, this might take a few minutes.")
   np = reticulate::import("numpy")
-  smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(42)), tae_runner = objective)
+  smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(42)), tae_runner = toy_smac_obj)
   smac$get_tae_runner()
   incumbent = smac$optimize()  # problem
   #inc_value = svm_from_cfg(incumbent)
@@ -35,7 +35,10 @@ run = function(cs, budget = 1000) {
 }
 
 # Objective to optimize:
-objective = function(cfg) {
+toy_smac_obj = function(cfg) {
+  runif(1)
+}
+smac_objective = function(cfg) {
   # some variables are defined in the scope where this function is called
   model_index <<- model_index + 1
   model_list[[model_index]] <<- cfg
