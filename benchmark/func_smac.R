@@ -1,53 +1,37 @@
-# SMAC algorithm:
-opt.smac = function(task, budget, measure, train_set = NULL) {
-  subTask <<- task
-  if (!is.null(train_set)) subTask <<- subsetTask(task, train_set)
-  inner_loop <<- makeResampleInstance("CV", iters = getGconf()$NCVInnerIter, stratify = TRUE, subTask)
-  best_model_index = which(perf_list == min(perf_list))[1]
-  mmodel = model_list[[best_model_index]]
-  return(mmodel)
-}
-
 run = function(cs, budget = 1000) {
   hh = reticulate::import("python_smac_space")
-  budget = 1000
   #scenario = Scenario({"run_obj": "quality",   # we optimize quality (alternatively runtime)
   #                   "runcount-limit": budget,  # maximum function evaluations
   #                   "cs": cs,               # configuration space
   #                   "deterministic": "true"
   #                   })
-  budget = 1000
+  budget = 100
   scenario = hh$Scenario(list("run_obj" = "quality",   # we optimize quality (alternatively runtime)
                      "runcount-limit" = budget,  # maximum function evaluations
                      "cs" = cs,               # configuration space
-                     "deterministic" = "true"
+                     "deterministic" = "true",
+                     "shared_model" = TRUE   # deletable
                      ))
 
+  # scenario$abort_on_first_run_crash = F
 
   print("Optimizing! Depending on your machine, this might take a few minutes.")
   np = reticulate::import("numpy")
-  smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(42)), tae_runner = toy_smac_obj)
+  #fd = hh$ExecuteTAFuncDict(toy_smac_obj)
+  #smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(4)), tae_runner = toy_smac_obj)
+  #smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(4)), tae_runner = fd)
+  reticulate::source_python('smac_obj.py')
+  source("smac_obj.R")
+  #smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(4)), tae_runner = smac_obj_from_cfg)
+  py_fun = reticulate::r_to_py(toy_smac_obj, convert = FALSE)
+  #py_fun = reticulate::r_to_py(function(x) 1, convert = TRUE)
+  smac = hh$SMAC(scenario = scenario, rng = np$random$RandomState(as.integer(4)), tae_runner = py_fun)
   smac$get_tae_runner()
   incumbent = smac$optimize()  # problem
   #inc_value = svm_from_cfg(incumbent)
   incumbent
   #print("Optimized Value: %.2f" % (inc_value))
 }
-
-# Objective to optimize:
-toy_smac_obj = function(cfg) {
-  runif(1)
-}
-smac_objective = function(cfg) {
-  # some variables are defined in the scope where this function is called
-  model_index <<- model_index + 1
-  model_list[[model_index]] <<- cfg
-  lrn = gen_mlrCPOPipe_from_smac_cfg(cfg)
-  perf = resample(lrn, subTask, resampling = inner_loop, measures = measure, show.info = FALSE)$aggr
-  perf_list <<- c(perf_list, as.numeric(perf))
-  return(perf)
-}
-
 
 
 test_run = function() {
