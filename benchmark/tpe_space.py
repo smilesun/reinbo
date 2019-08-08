@@ -32,7 +32,7 @@ space = {
                  'perc': hp.uniform('uni_per', 0.1, 1)},
 
                 {'filter': 'cpoPca(center = FALSE, rank)',
-                 'rank': hp.uniform('pca_rank', 0, 0.9)},
+                 'rank': hp.uniform('pca_rank', 0.1, 1)},
 
                 {'filter': 'NA'}]),
 

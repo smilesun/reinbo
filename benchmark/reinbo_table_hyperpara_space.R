@@ -21,7 +21,7 @@ ps.naiveBayes = makeParamSet(makeNumericParam("laplace", lower = 0.01, upper = 1
 
 ps.filter = makeParamSet(makeNumericParam("perc", lower = .1, upper = 1))
 
-ps.pca = makeParamSet(makeNumericParam("rank", lower = .1, upper = 1)) ## range(p/10, p/1.5), p is the number of features
+ps.pca = makeParamSet(makeNumericParam("rank", lower = .1, upper = 1)) ## range(p/10, p), p is the number of features
 
 
 

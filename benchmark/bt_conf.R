@@ -1,6 +1,6 @@
 flag_debug = F
 task_ids = 37
-if (!flag_debug) task_ids = c(14, 23, 37, 53, 3917, 9946, 9952, 9978, 125921, 146817, 146820)
+if (!flag_debug) task_ids = c(14, 23, 37, 53, 3917, 9946, 9952, 9978, 146817, 146820)
 getGconf = function() {
   conf_common =  list(
       NCVOuterIter = 5L,
