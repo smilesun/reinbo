@@ -22,7 +22,10 @@ lock_eval.reinbo.table = function(task, measure, train_set, test_set, best_model
 # Reinforcement learning part:
 runQTable <- function(task, budget, measure, instance, init_val, conf) {
   env = Q_table_Env$new(task, budget, measure, instance)
-  agent = initAgent(name = "AgentTable", env = env, conf = conf, q_init = init_val, state_names = g_state_names, act_names_per_state = get_act_names_perf_state2(), vis_after_episode = TRUE)
+  agent = initAgent(name = "AgentTable", env = env, conf = conf, q_init = init_val, 
+                    state_names = g_state_names, 
+                    act_names_per_state = get_act_names_perf_state(g_operators), 
+                    vis_after_episode = FALSE)
   agent$learn(getGconf()$RLMaxEpisode)
   return(env)
 }

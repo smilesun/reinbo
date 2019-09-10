@@ -14,7 +14,7 @@ Q_table_Env = R6::R6Class(
     initialize = function(task, budget, measure, cv_instance){
       self$flag_continous = FALSE    # non-continuous action
       self$flag_tensor = FALSE       # no use of cnn       
-      self$act_cnt = g_act_cnt       # 5 available operators/actions at each stage
+      self$act_cnt = g_act_cnt       # available operators/actions at each stage
       self$state_dim = g_state_dim
       self$step_cnt = 0L
       self$s_r_d_info = list(
@@ -31,20 +31,21 @@ Q_table_Env = R6::R6Class(
     },
 
     evaluateArm = function(vec_arm) {
-      print(vec_arm)
       return(vec_arm)
     },
     
     # This function will be called at each step of the learning
     step = function(action) {
-      action = g_operators[, self$step_cnt + 1][action]
-      self$s_r_d_info[["state"]] = paste0(self$s_r_d_info[["state"]], "-[", action, "]")
-      print(self$s_r_d_info[["state"]])
+      operators = g_operators[[names(g_operators)[self$step_cnt + 1]]]
+      operator = operators[action]
+      if (action > length(operators)) {operator = operators[action %% length(operators)]}
+      self$s_r_d_info[["state"]] = paste0(self$s_r_d_info[["state"]], "-[", operator, "]")
+      #print(self$s_r_d_info[["state"]])
       self$s_r_d_info[["reward"]] = 0
       self$step_cnt = self$step_cnt + 1L
       if (self$step_cnt >= g_max_depth) {
         model = g_getRLPipeline(self$s_r_d_info[["state"]])
-        print(paste(model, collapse = " --> "))
+        #print(paste(model, collapse = " --> "))
         # stop RL agent if no enough budget for this episode:
         model_id = paste(model, collapse = "\t") 
         if (has.key(model_id, self$mbo_cache)){
@@ -61,7 +62,7 @@ Q_table_Env = R6::R6Class(
           self$tuning(model)
           self$s_r_d_info[["reward"]] = self$model_best_perf  # best performance of the model until now
           self$s_r_d_info[["done"]] = TRUE
-          print(paste("Best Perfomance:", self$model_best_perf))
+          #print(paste("Best Perfomance:", self$model_best_perf))
           }
       }
       return(self$s_r_d_info)
