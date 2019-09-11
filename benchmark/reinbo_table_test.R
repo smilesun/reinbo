@@ -11,7 +11,7 @@ library(phng)
 library(R6)
 
 source("reinbo_table_hyperpara_space.R")
-source("reinbo_table_conf.R")
+source("reinbo_table_utils.R")
 source("reinbo_table_env.R")
 source("reinbo_table_func.R")
 source("system.R")
@@ -27,3 +27,5 @@ conf = rlR::getDefaultConf("AgentTable")
 conf$set(policy.maxEpsilon = 1, policy.minEpsilon = 0.01, policy.aneal.steps = 60)
 best_model = opt.reinbo.table(task, budget = 100L, measure = list(mmce), train_set = train_set, init_val = -1, conf = conf)
 pred = lock_eval.reinbo.table(task, measure = list(mmce), train_set, test_set, best_model)
+best_model$env$agent$q_tab
+best_model$env$agent$act_names_per_state

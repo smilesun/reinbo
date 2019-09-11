@@ -11,11 +11,13 @@ Q_table_Env = R6::R6Class(
     budget = NULL,          # maximun models to be evaluated
     measure = NULL,
     cv_instance = NULL,
-    initialize = function(task, budget, measure, cv_instance){
+    ctrl = NULL,
+    initialize = function(task, budget, measure, cv_instance, ctrl){
       self$flag_continous = FALSE    # non-continuous action
       self$flag_tensor = FALSE       # no use of cnn       
-      self$act_cnt = g_act_cnt       # available operators/actions at each stage
-      self$state_dim = g_state_dim
+      self$ctrl = ctrl
+      self$act_cnt = self$ctrl$g_act_cnt       # available operators/actions at each stage
+      self$state_dim = self$ctrl$g_state_dim
       self$step_cnt = 0L
       self$s_r_d_info = list(
         state = "s",
@@ -36,22 +38,22 @@ Q_table_Env = R6::R6Class(
     
     # This function will be called at each step of the learning
     step = function(action) {
-      operators = g_operators[[names(g_operators)[self$step_cnt + 1]]]
+      operators = self$ctrl$g_operators[[names(self$ctrl$g_operators)[self$step_cnt + 1]]]
       operator = operators[action]
       if (action > length(operators)) {operator = operators[action %% length(operators)]}
       self$s_r_d_info[["state"]] = paste0(self$s_r_d_info[["state"]], "-[", operator, "]")
       #print(self$s_r_d_info[["state"]])
       self$s_r_d_info[["reward"]] = 0
       self$step_cnt = self$step_cnt + 1L
-      if (self$step_cnt >= g_max_depth) {
+      if (self$step_cnt >= self$ctrl$g_max_depth) {
         model = g_getRLPipeline(self$s_r_d_info[["state"]])
         #print(paste(model, collapse = " --> "))
         # stop RL agent if no enough budget for this episode:
         model_id = paste(model, collapse = "\t") 
         if (has.key(model_id, self$mbo_cache)){
-          require_budget =  g_mbo_iter*sum(getParamLengths(g_getParamSetFun(model)))
+          require_budget =  self$ctrl$g_mbo_iter*sum(getParamLengths(g_getParamSetFun(model)))
         } else {
-          require_budget =  (g_init_design + g_mbo_iter)*sum(getParamLengths(g_getParamSetFun(model)))
+          require_budget =  (self$ctrl$g_init_design + self$ctrl$g_mbo_iter)*sum(getParamLengths(g_getParamSetFun(model)))
         }
         if(self$budget < require_budget) stop("too small total budget for reinbo table!")
         if (self$budget - length(self$model_trained) < require_budget) {
@@ -97,7 +99,7 @@ Q_table_Env = R6::R6Class(
           # else: use parameter set and performance in memory as initial design
           design = self$mbo_cache[[model_id]][ , -length(self$mbo_cache[[model_id]])]
           # run several iterations of MBO:
-          run = mbo_fun(self$task, model, design, self$measure, self$cv_instance)
+          run = mbo_fun(self$task, model, design, self$measure, self$cv_instance, self$ctrl)
           # best accuracy:
           self$model_best_perf = run$y
           # update mbo_cache:
@@ -115,8 +117,8 @@ Q_table_Env = R6::R6Class(
       } else {
         
         # if not in mbo_cache:
-        design = generateDesign(n = g_init_design*sum(getParamLengths(ps)), par.set = ps)
-        run = mbo_fun(self$task, model, design, self$measure, self$cv_instance)  # potential warning: generateDesign could only produce 3 points instead of 1000, see issue 442 of mlrMBO
+        design = generateDesign(n = self$ctrl$g_init_design*sum(getParamLengths(ps)), par.set = ps)
+        run = mbo_fun(self$task, model, design, self$measure, self$cv_instance, self$ctrl)  # potential warning: generateDesign could only produce 3 points instead of 1000, see issue 442 of mlrMBO
         self$model_best_perf = run$y
         self$mbo_cache[[model_id]] = run$opt.path$env$path
         self$mbo_cache[[model_id]]["epis_unimproved"] = 0
