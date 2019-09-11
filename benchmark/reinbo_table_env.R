@@ -116,7 +116,7 @@ Q_table_Env = R6::R6Class(
         
         # if not in mbo_cache:
         design = generateDesign(n = g_init_design*sum(getParamLengths(ps)), par.set = ps)
-        run = mbo_fun(self$task, model, design, self$measure, self$cv_instance)
+        run = mbo_fun(self$task, model, design, self$measure, self$cv_instance)  # potential warning: generateDesign could only produce 3 points instead of 1000, see issue 442 of mlrMBO
         self$model_best_perf = run$y
         self$mbo_cache[[model_id]] = run$opt.path$env$path
         self$mbo_cache[[model_id]]["epis_unimproved"] = 0

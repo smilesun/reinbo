@@ -31,8 +31,9 @@ runQTable <- function(task, budget, measure, instance, init_val, conf) {
 }
 
 # MBO function: hyperparameter tuning
+#' @param model character vector
 mbo_fun = function(task, model, design, measure, cv_instance) {
-  ps = g_getParamSetFun(model)
+  ps = g_getParamSetFun(model)  # get parameter set from string representation of a model
   object = makeSingleObjectiveFunction(
     fn = function(x) {
       -reinbo_mlr_fun(task, model, x, measure, cv_instance) + runif(1)/100000
@@ -41,8 +42,12 @@ mbo_fun = function(task, model, design, measure, cv_instance) {
     has.simple.signature = FALSE,
     minimize = FALSE
   )
-  ctrl = setMBOControlTermination(makeMBOControl(), iters = g_mbo_iter*sum(getParamLengths(ps)))
+  ctrl = setMBOControlTermination(makeMBOControl(), iters = g_mbo_iter * sum(getParamLengths(ps)))  # 2 times the parameter set size
   run = mbo(object, design = design, control = ctrl, show.info = FALSE)
+  ## in (function (fn, nvars, max = FALSE, pop.size = 1000, max.generations = 100,  : Stopped because hard maximum generation limit was hit.
+  ## Genoud is a function that combines evolutionary search algorithms with derivative-based (Newton or quasi-Newton) methods to solve difficult optimization problems.
+  ## not always occur: Warning in generateDesign(control$infill.opt.focussearch.points, ps.local,: generateDesign could only produce 20 points instead of 1000!
+  ## in https://github.com/mlr-org/mlrMBO/issues/442, is being worked on https://github.com/mlr-org/mlrMBO/pull/444
   return(run)
 }
 
@@ -61,12 +66,12 @@ getBestModel = function(cache){
   models = keys(cache)
   results = data.frame(model = 0, y = 0)
   for (i in 1:length(models)) {
-    results[i,1] = models[i]
-    results[i,2] = max(cache[[models[i]]][,"y"])
+    results[i, 1] = models[i]
+    results[i, 2] = max(cache[[models[i]]][, "y"])
   }
   key = results[results$y == max(results$y), "model"][1]
   ps = cache[[key]]
-  ps = ps[(ps$y == max(ps$y)), (colnames(ps) != "epis_unimproved")][1,]
+  ps = ps[(ps$y == max(ps$y)), (colnames(ps) != "epis_unimproved")][1, ]
   return(data.frame(Model = key, ps))
 }
 
@@ -75,8 +80,8 @@ genLearnerForBestModel = function(task, best_model, measure){
   param_set = as.list(best_model)
   param_set$Model = NULL
   param_set$y = NULL
-  if (!is.null(param_set$C)) {param_set$C = 2^param_set$C}
-  if (!is.null(param_set$sigma)) {param_set$sigma = 2^param_set$sigma}
+  if (!is.null(param_set$C)) { param_set$C = 2^param_set$C }
+  if (!is.null(param_set$sigma)) { param_set$sigma = 2^param_set$sigma }
   lrn = genLearner.reinbo(task, model, param_set, measure)
   return(lrn)
 }

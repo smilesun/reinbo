@@ -25,5 +25,5 @@ test_set = outer_loop$test.inds[[1]]
 
 conf = rlR::getDefaultConf("AgentTable")
 conf$set(policy.maxEpsilon = 1, policy.minEpsilon = 0.01, policy.aneal.steps = 60)
-best_model = opt.reinbo.table(task, budget = 1000L, measure = list(mmce), train_set = train_set, init_val = -1, conf = conf)
+best_model = opt.reinbo.table(task, budget = 100L, measure = list(mmce), train_set = train_set, init_val = -1, conf = conf)
 pred = lock_eval.reinbo.table(task, measure = list(mmce), train_set, test_set, best_model)
