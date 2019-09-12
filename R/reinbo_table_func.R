@@ -23,10 +23,10 @@ lock_eval.reinbo.table = function(task, measure, train_set, test_set, best_model
 #' @param ctrl pipeline configuration
 runQTable <- function(task, budget, measure, instance, init_val, conf, ctrl) {
   env = Q_table_Env$new(task, budget, measure, instance, ctrl)
-  agent = initAgent(name = "AgentTable", env = env, conf = conf, q_init = init_val, 
-                    state_names = ctrl$g_state_names, 
-                    act_names_per_state = get_act_names_perf_state(ctrl$g_operators), 
-                    vis_after_episode = TRUE)
+  agent = initAgent(name = "AgentTable", env = env, conf = conf, q_init = init_val,
+                    state_names = ctrl$g_state_names,
+                    act_names_per_state = get_act_names_perf_state(ctrl$g_operators),
+                    vis_after_episode = FALSE)
   agent$learn(getGconf()$RLMaxEpisode)
   return(env)
 }
@@ -90,7 +90,7 @@ genLearnerForBestModel = function(task, best_model, measure){
 
 genLearner.reinbo = function(task, model, param_set, measure){
   p = getTaskNFeats(task)
-  lrn = sprintf("%s %%>>%% %s %%>>%% makeLearner('%s', par.vals = ps.learner)", 
+  lrn = sprintf("%s %%>>%% %s %%>>%% makeLearner('%s', par.vals = ps.learner)",
                 model[1], model[2], model[3])
   lrn = gsub(pattern = "perc", x = lrn, replacement = "perc = param_set$perc", fixed = TRUE)
   lrn = gsub(pattern = "rank", x = lrn, replacement = "rank = as.integer(max(1, round(p*param_set$rank)))", fixed = TRUE)

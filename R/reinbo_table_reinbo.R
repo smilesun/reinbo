@@ -18,6 +18,6 @@ reinbo = function(task, custom_operators, budget, train_set) {
 
   conf = rlR::getDefaultConf("AgentTable")
   conf$set(policy.maxEpsilon = 1, policy.minEpsilon = 0.01, policy.aneal.steps = 60)
-  best_model = opt.reinbo.table(task, budget = 100L, measure = list(mmce), train_set = train_set, init_val = -1, conf = conf, ctrl)
+  best_model = opt.reinbo.table(task, budget = budget, measure = list(mmce), train_set = train_set, init_val = -1, conf = conf, ctrl)
   best_model
 }
