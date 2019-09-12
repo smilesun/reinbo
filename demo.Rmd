@@ -1,0 +1,72 @@
+---
+title: "Poster_demo"
+author: "Jiali Lin"
+date: "9/12/2019"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+**Reinbo** is an AutoML package in R that optimizes machine learning pipeline with Bayesian Optimization embedded Reinforcement Learning.
+
+## Installation
+* Clone or download this repository 
+
+* Open **reinbo.Rproj** with RStudio
+
+* Click **build** -> **Install and Restart** to install ReinBo package
+
+## Using ReinBo
+Load package to library and now ReinBo is ready for you to optimize a pipeline.
+```{r eval = FALSE}
+library(ReinBo)
+best_model = reinbo(task = mlrTask, budget = 1000L, train_set = train_set, custom_operators = NULL)
+```
+- **task**: the task must be a **mlr task** (currently only classification task is accepted.)
+- **budget**: maximum number of pipelines to evaluate
+- **train_set**: data set index used for pipeline optimization
+- **custom_operators**: set **Null** to use all default operators for pipeline
+
+A typical ML pipline consists of 3 stages: preprocessing, filtering and classification. Below is a list of the current built-in operators at each stage that come with ReinBo:
+
+- **preprocess**: "cpoScale()", "cpoScale(scale = FALSE)", "cpoScale(center = FALSE)", "cpoSpatialSign()", "NA";
+
+- **filter**: "cpoFilterAnova(perc)", "cpoFilterKruskal(perc)", "cpoPca(center = FALSE, rank)", "cpoFilterUnivariate(perc)", "NA";
+
+- **classifier**: "classif.ksvm", "classif.ranger", "classif.kknn", "classif.xgboost", "classif.naiveBayes";
+
+where "NA" indicates that no operator would be taken at that stage.
+
+Users can also select a subset of operators by setting e.g.:
+```{r}
+custom_operators = list(preprocess = c("cpoScale()", "cpoSpatialSign()", "NA"),
+                        filter = NULL, # using all filtering operators
+                        classifier = c("classif.kknn", "classif.naiveBayes"))
+```
+
+## Example
+```{r message=FALSE, warning=FALSE, results='hide'}
+library(ReinBo)
+library(mlrCPO)
+library(OpenML)
+task = convertOMLTaskToMlr(getOMLTask(37))$mlr.task %>>% cpoDummyEncode(reference.cat = FALSE)
+split = makeResampleInstance("Holdout", task)
+train_set = split$train.inds[[1]]
+test_set = split$test.inds[[1]]
+best_model = reinbo(task = task, budget = 100L, train_set = train_set, custom_operators = NULL)
+print(best_model$mmodel)
+```
+```{r echo=FALSE}
+print(best_model$mmodel)
+```
+
+**y** in the result is mmce (mean mis-classification error) of the best model.
+
+
+
+
+
