@@ -1,6 +1,6 @@
 # Migration
-Please visit 
-https://github.com/compstat-lmu/paper_2019_ReinBO, this repo is at stake
+Please visit our new repository
+https://github.com/compstat-lmu/paper_2019_ReinBO , this repository is no longer maintained.
 
 # ReinBo
 This repository is only for reproducing the experimental results of the following paper, which is currently under review. 
