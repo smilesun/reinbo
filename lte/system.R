@@ -1,9 +1,9 @@
 sys = Sys.info()
-flag_local = as.list(sys)$user == "sunxd"
+flag_local = as.list(sys)$user == "JialiLin"
 mconf.file = NULL
 
 if (flag_local) {
-  reticulate::use_python("~/anaconda3/bin/python")
+  reticulate::use_python("/usr/local/bin/python3")
   mconf.file = NA
 } else {
   reticulate::use_condaenv("w_env")

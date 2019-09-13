@@ -2,7 +2,7 @@ options(mlr.show.info = FALSE)
 library(batchtools)
 tosources = c("bt_conf.R", "utility.R")
 
-depend_reinbo_table = c("algo_reinbo_table.R", "reinbo_table_func.R", "reinbo_table_env.R", "reinbo_table_conf.R", "reinbo_table_hyperpara_space.R")
+depend_reinbo_table = c("algo_reinbo_table.R", "reinbo_table_func.R", "reinbo_table_env.R", "reinbo_table_utils.R", "reinbo_table_hyperpara_space.R")
 tosources = c(tosources, depend_reinbo_table)
 
 depend_auto_sklearn = c("algo_auto_sklearn.R", "auto_sklearn_func.R")
